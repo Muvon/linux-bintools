@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -e
+
+master=${1:-master}
+message="$2"
+
+if [[ -z "$master" || -z "$message" ]]; then
+  echo >&2 "Usage: git-coauthor-squash master-branch commit-message"
+  exit 1
+fi
+
+master="master"
+branch=$(git branch --show-current)
+author=$(git log --pretty=format:"%an <%ae>" "$master..$branch" | tail -n 1)
+declare -a coauthors
+readarray -t coauthors <<<"$(git log --pretty=format:"%an <%ae>" "$master..$branch" | sort | uniq | grep -vE 'users.noreply.github.com' | grep -vE "$author")"
+
+message="$1"
+if [[ -n "${#coauthors[@]}" ]]; then
+  message="$message\n>"
+fi
+
+for coauthor in "${coauthors[@]}"; do
+  message="$message\n> Co-authored-by: $coauthor"
+done
+
+git reset "$(git merge-base "$master" "$branch")"
+git add -A
+git commit -m "$(echo -e "$message")" --author "$author"
+

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#!/usr/bin/env bash
+set -e
+
+# Checks for bin files
+(
+  which psql
+  which pg_dump
+  which sed
+) 1> /dev/null
+
+# Parse input variables
+for p in "$@"; do
+  case $p in
+    --db=*)
+      database=${p##*=}
+      ;;
+    --table=*)
+      table=${p##*=}
+      ;;
+  esac
+done
+
+# Check for required variables
+if [[ -z "$table" || -z "$database" ]]; then
+  echo "Usage: $0 --db=database --table=table"
+  exit 1
+fi
+
+# functions
+
+# Declare contanstats and PATHs
+SCHEMA_NAME=$(< /dev/urandom tr -dc 'A-Za-z' | head -c8)
+
+# Start the dance now
+current_schema=$(psql -t -c "SELECT current_schema();" $database)
+
+echo 'Loading table data to new schema'
+psql -c "CREATE SCHEMA $SCHEMA_NAME" $database
+pg_dump -t $table $database | sed "/^SET search_path = /s/$current_schema,/$SCHEMA_NAME,/g" | psql $database
+
+echo 'Finishing with schema swaps and changing name of table'
+psql $database <<EOF
+  CREATE SCHEMA ${SCHEMA_NAME}_swap;
+  ALTER TABLE ${current_schema}.${table} SET SCHEMA ${SCHEMA_NAME}_swap;
+  ALTER TABLE ${SCHEMA_NAME}.${table} SET SCHEMA ${current_schema};
+  DROP SCHEMA ${SCHEMA_NAME}, ${SCHEMA_NAME}_swap CASCADE;
+EOF
