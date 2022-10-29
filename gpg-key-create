@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+if [[ -f key.gpg ]]; then
+  >&2 echo 'Failed to generate key you already have one'
+  exit 1
+fi
+
+host="box@$(hostname).muvon.io"
+password=$(pwgen -Cs 20 1 | tr -d ' ' | tr -d '\n')
+echo "Password: $password"
+
+cat > "key.txt" <<EOF
+Key-Type: RSA
+Key-Length: 2048
+Subkey-Type: RSA
+Subkey-Length: 2048
+Name-Real: SRV $(hostname)
+Name-Email: $host
+Expire-Date: 0
+Passphrase: $password
+EOF
+
+gpg --batch --generate-key "key.txt"
+rm -f "key.txt"
+
+echo 'export GIT_SECRET_PASSWORD="'$password'"' >> ~/.bashrc
+gpg --export > key.gpg
