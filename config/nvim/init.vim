@@ -1,19 +1,23 @@
 " --- General settings ---
 set backspace=indent,eol,start
 set ruler
-set number
+set number                     " Show current line number
+set relativenumber             " Show relative line numbers
 set showcmd
 set incsearch
 set hlsearch
 set mouse=a
+set t_Co=256
 syntax on
 
+colorscheme obsidian
+set encoding=utf-8
 set nocompatible              " be iMproved, required
 
 call plug#begin()
 Plug 'bling/vim-airline'
-Plug 'scrooloose/nerdtree'
-Plug 'jistr/vim-nerdtree-tabs'
+" Plug 'scrooloose/nerdtree'
+" Plug 'jistr/vim-nerdtree-tabs'
 Plug 'ryanoasis/vim-devicons'
 Plug 'xolox/vim-misc'
 Plug 'xolox/vim-easytags'
@@ -23,24 +27,47 @@ Plug 'vim-scripts/a.vim'
 Plug 'Raimondi/delimitMate'
 Plug 'airblade/vim-gitgutter'
 Plug 'neoclide/coc.nvim', {'branch': 'master', 'do': 'yarn install --frozen-lockfile'}
+Plug 'godlygeek/tabular'
+Plug 'preservim/vim-markdown'
+Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+Plug 'nvim-lua/plenary.nvim'
+Plug 'nvim-telescope/telescope.nvim', { 'tag': '0.1.0' }
+Plug 'nvim-tree/nvim-web-devicons' " optional, for file icons
+Plug 'nvim-tree/nvim-tree.lua'
+Plug 'editorconfig/editorconfig-vim'
+Plug 'sindrets/diffview.nvim'
+Plug 'romgrk/barbar.nvim'
 call plug#end()
 
 filetype plugin indent on    " required
 " show existing tab with 4 spaces width
-set tabstop=2
-" when indenting with '>', use 4 spaces width
-" set shiftwidth=4
-" On pressing tab, insert 4 spaces
-set expandtab
+set autoindent expandtab tabstop=2 shiftwidth=2
 
-set encoding=utf-8
-set background=dark
-colorscheme obsidian
-let &t_Co=256
+" Initialize nvim-tree
+lua require'nvim-tree'.setup {
+  \sort_by = "case_sensitive",
+  \view = {
+  \  adaptive_size = true,
+  \  mappings = {
+  \    list = {
+  \      { key = "u", action = "dir_up" },
+  \    },
+  \  },
+  \},
+  \renderer = {
+  \  group_empty = true,
+  \},
+  \filters = {
+  \  dotfiles = true,
+  \},
+\}
 
+"GPLv2-or-later File browser
+let NERDTreeShowHidden=1
 " May need for vim (not neovim) since coc.nvim calculate byte offset by count
 " utf-8 byte sequence.
-set encoding=utf-8
+
+" Coc configuration
 " Some servers have issues with backup files, see #649.
 set nobackup
 set nowritebackup
@@ -121,17 +148,19 @@ augroup mygroup
   autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 augroup end
 
-" Applying codeAction to the selected region.
+" Applying code actions to the selected code block.
 " Example: `<leader>aap` for current paragraph
 xmap <leader>a  <Plug>(coc-codeaction-selected)
 nmap <leader>a  <Plug>(coc-codeaction-selected)
 
-" Remap keys for applying codeAction to the current buffer.
-nmap <leader>ac  <Plug>(coc-codeaction)
-" Apply AutoFix to problem on the current line.
+" Remap keys for apply code actions at the cursor position.
+nmap <leader>ac  <Plug>(coc-codeaction-cursor)
+" Remap keys for apply code actions affect whole buffer.
+nmap <leader>as  <Plug>(coc-codeaction-source)
+" Apply the most preferred quickfix action to fix diagnostic on the current line.
 nmap <leader>qf  <Plug>(coc-fix-current)
 
-" Remap keys for refactor code actions.
+" Remap keys for apply refactor code actions.
 nmap <silent> <leader>re <Plug>(coc-codeaction-refactor)
 xmap <silent> <leader>r  <Plug>(coc-codeaction-refactor-selected)
 nmap <silent> <leader>r  <Plug>(coc-codeaction-refactor-selected)
@@ -196,4 +225,55 @@ nnoremap <silent><nowait> <space>j  :<C-u>CocNext<CR>
 nnoremap <silent><nowait> <space>k  :<C-u>CocPrev<CR>
 " Resume latest coc list.
 nnoremap <silent><nowait> <space>p  :<C-u>CocListResume<CR>
+
+" Barbar mappings
+" Move to previous/next
+nnoremap <silent>    <A-,> <Cmd>BufferPrevious<CR>
+nnoremap <silent>    <A-.> <Cmd>BufferNext<CR>
+" Re-order to previous/next
+nnoremap <silent>    <A-<> <Cmd>BufferMovePrevious<CR>
+nnoremap <silent>    <A->> <Cmd>BufferMoveNext<CR>
+" Goto buffer in position...
+nnoremap <silent>    <A-1> <Cmd>BufferGoto 1<CR>
+nnoremap <silent>    <A-2> <Cmd>BufferGoto 2<CR>
+nnoremap <silent>    <A-3> <Cmd>BufferGoto 3<CR>
+nnoremap <silent>    <A-4> <Cmd>BufferGoto 4<CR>
+nnoremap <silent>    <A-5> <Cmd>BufferGoto 5<CR>
+nnoremap <silent>    <A-6> <Cmd>BufferGoto 6<CR>
+nnoremap <silent>    <A-7> <Cmd>BufferGoto 7<CR>
+nnoremap <silent>    <A-8> <Cmd>BufferGoto 8<CR>
+nnoremap <silent>    <A-9> <Cmd>BufferGoto 9<CR>
+nnoremap <silent>    <A-0> <Cmd>BufferLast<CR>
+" Pin/unpin buffer
+nnoremap <silent>    <A-p> <Cmd>BufferPin<CR>
+" Close buffer
+nnoremap <silent>    <A-c> <Cmd>BufferClose<CR>
+" Wipeout buffer
+"                          :BufferWipeout
+" Close commands
+"                          :BufferCloseAllButCurrent
+"                          :BufferCloseAllButVisible
+"                          :BufferCloseAllButPinned
+"                          :BufferCloseAllButCurrentOrPinned
+"                          :BufferCloseBuffersLeft
+"                          :BufferCloseBuffersRight
+" Magic buffer-picking mode
+nnoremap <silent> <C-p>    <Cmd>BufferPick<CR>
+" Sort automatically by...
+nnoremap <silent> <Space>bb <Cmd>BufferOrderByBufferNumber<CR>
+nnoremap <silent> <Space>bd <Cmd>BufferOrderByDirectory<CR>
+nnoremap <silent> <Space>bl <Cmd>BufferOrderByLanguage<CR>
+nnoremap <silent> <Space>bw <Cmd>BufferOrderByWindowNumber<CR>
+
+" Other:
+" :BarbarEnable - enables barbar (enabled by default)
+" :BarbarDisable - very bad command, should never be used
+
+
+" Telescope sugar mappings
+" Find files using Telescope command-line sugar.
+nnoremap <leader>ff <cmd>Telescope find_files<cr>
+nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+nnoremap <leader>fb <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
 

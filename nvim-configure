@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 # VIM cheat sheet: https://vim.rtorr.com/
 set -e
-curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
-  https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-curl -fLo ~/.vimrc \
-  https://raw.githubusercontent.com/Muvon/linux-bintools/master/config/.vimrc
+mkdir -p ~/.config/nvim
+sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
+       https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+curl -fLo ~/.config/nvim/init.vim \
+  https://raw.githubusercontent.com/Muvon/linux-bintools/master/config/nvim/init.vim
 vim +'PlugInstall --sync' +qa
-mkdir -p ~/.vim/colors
+mkdir -p ~/.config/nvim/colors
 curl -sSL https://raw.githubusercontent.com/abra/vim-obsidian/master/colors/obsidian.vim > ~/.vim/colors/obsidian.vim
 if [[ "$(whoami)" == "root" ]]; then
   curl -sL install-node.vercel.app/lts | bash
   curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
 fi
-vim +CocInstall coc-tabnine +qall
+nvim +CocInstall coc-tabnine coc-rust-analyzer coc-html coc-tsserver @yaegassy/coc-intelephense +qall
 
 # Install patched fonts on osx for NERDTree plugin
 if which brew; then
