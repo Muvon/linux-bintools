@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -e
+
+source_dir=$1
+remote_dir=$2
+
+# Check if both arguments are provided, else exit
+[ -z "$source_dir" ] || [ -z "$remote_dir" ] && { echo "Usage: $0 source_dir remote_ssh_dir"; exit 1; }
+
+# Check if source_dir is a valid directory, else exit
+[ ! -d "$source_dir" ] && { echo "Missing source directory: $source_dir"; exit 1; }
+
+exclude_file=$(mktemp)
+
+# Use grep -h to suppress file names in output
+# Pipe output directly into rsync commands to avoid writing to and reading from disk
+find "$source_dir" -name .gitignore | while read file; do
+  dir=$(dirname "$file" | sed "s#$source_dir/##")
+  cat "$file" | sed 's/\*\*/\*/g' | grep -v '^#' | grep -v '^$' | while read line; do
+    echo "$dir/$line"
+  done
+done > "$exclude_file" 
+
+rsync --exclude-from="$exclude_file" -vazP --delete "$source_dir"/* "$remote_dir"
+fswatch -o "$source_dir" | xargs -n1 -I{} rsync --exclude-from="$exclude_file" -vazP --delete "$source_dir"/* "$remote_dir"
